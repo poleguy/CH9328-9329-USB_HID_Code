@@ -7,10 +7,62 @@
 # all keys will be sent to the selected 
 import serial
 import queue
-
-q = queue.Queue()
+import time
+from pynput import keyboard
 
 def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"):
+    # use usbhid to grab keyboard
+    ser = serial.Serial(port, baudrate=9600, timeout=0.5)
+
+    #listener = keyboard.Listener(on_press=on_press, suppress=True)
+    #listener.start()  # start to listen on a separate thread
+
+    cmd = "usbhid-dump -m 03f0:034a -es -t 5000"
+    cmd = shlex.split(cmd)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = {}
+    #row = proc.stdout.readline()
+    #print(row)
+    #row = proc.stdout.readline().decode("utf-8")
+    while True:
+    #for i in range(50):
+        row = proc.stdout.readline()
+        if row == b'':
+            print("timeout detected")
+            break
+        print(row)
+        print('row done')
+        if b'STREAM' in row:
+            print('...')
+            values = proc.stdout.readline().decode("utf-8")
+            print(values)
+            values = values.split(' ')
+            codes = []
+            for v in values[1:]:
+                code = int(v, 16)
+                codes.append(code)
+            print(codes)
+            serial_data = codes_to_hid(codes)
+            if codes == 'f12':
+                print('F12 pressed... ending session.')
+                break
+            print('.')
+            ser.write(serial_data)
+    print('done')
+    # wait till timeout
+    proc.communicate()
+
+    time.sleep(2) # just to be sure all is cleaned up and it doesn't destablize the os
+
+
+
+import subprocess
+import shlex
+
+
+
+
+def main_pyinput(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"):
     ser = serial.Serial(port, baudrate=9600, timeout=0.5)
 
     listener = keyboard.Listener(on_press=on_press, suppress=True)
@@ -23,18 +75,22 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
             print('F12 pressed... ending session.')
             break
         print('.')
-        #ser.write(serial_data)
+        ser.write(serial_data)
     print('done')
     listener.join()  # remove if main thread is polling self.keys
     print('listener done')
+    time.sleep(2) # just to be sure all is cleaned up and it doesn't destablize the os
 
 
 def char_to_hid(key):
     serial_data = serial.to_bytes([0x00,0x00,0x50,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00])
     return serial_data
 
+def codes_to_hid(codes):
+    serial_data = serial.to_bytes(codes)
+    return serial_data
+
 # https://stackoverflow.com/questions/11918999/key-listeners-in-python
-from pynput import keyboard
 
 def on_press(key):
     try:
@@ -55,6 +111,7 @@ def blah():
     while True:
         name_str = input('Run CMD:')
         if name_str == 'a':
+            # this sends a key down command and then a key up command
             ser.write(serial.to_bytes([0x00,0x00,0x50,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]))
             print('Left')
         elif name_str == 's':
@@ -150,5 +207,6 @@ def blah():
 
 
 if __name__ == '__main__':
+    q = queue.Queue()
     main()
 
