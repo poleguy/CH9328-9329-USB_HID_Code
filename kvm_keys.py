@@ -43,7 +43,7 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
                 codes.append(code)
             print(codes)
             serial_data = codes_to_hid(codes)
-            if codes == 'f12':
+            if codes == [0,0,0x45,0,0,0,0,0]:
                 print('F12 pressed... ending session.')
                 break
             print('.')
