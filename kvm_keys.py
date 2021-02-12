@@ -76,12 +76,19 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
     result = {}
     while True:
     #for i in range(50):
-        row = proc.stdout.readline().decode('utf-8').strip('\n')
+        raw_row = proc.stdout.readline()
+        row = raw_row.decode('utf-8').strip('\n')
+
+        print(raw_row)
+        if raw_row == b'':            
+            print("timeout detected with 'b'",flush=True)
+            p.sendline('No more')
+            p.prompt()
+            print(f"far end: {p.before.decode('utf-8')}", flush=True)
+            break
+
         print(f'near end: {row}', flush=True)
         p.sendline(row)
-        if "No more interfaces to dump" in row:
-            print("timeout detected",flush=True)
-            break
         p.expect("kvm_keys> ")
         print(f"far end: {p.before.decode('utf-8')}", flush=True)
     print('done')
@@ -109,7 +116,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     
     result = {}
     print("starting", flush=True)
-    print('Will end upon receiving "No more interfaces to dump"', flush=True)
+    print('Will end upon receiving "No more"', flush=True)
     with fileinput.input(files=None) as f:
         while True:
         #for i in range(50):
@@ -117,7 +124,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
             # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
             print('kvm_keys> ', flush=True)
             row = f.readline()
-            if 'No more interfaces to dump' in row:
+            if 'No more' in row:
                 print("timeout detected", flush=True)
                 break
             print(row, flush=True)
