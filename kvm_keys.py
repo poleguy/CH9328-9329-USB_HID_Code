@@ -38,7 +38,7 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
          username = None,
          uid_vid = "03f0:034a",
          timeout = 5000,
-         role = "client"):
+         role = "server"):
     # use usbhid to grab keyboard
 
     if "server" in role:
