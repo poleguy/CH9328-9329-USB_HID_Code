@@ -28,86 +28,80 @@ import time
 import subprocess
 import shlex
 import os
+# See http://pexpect.sourceforge.net/
+import pexpect
+from pexpect import pxssh
+
 
 def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0",
          remote = None,
+         username = None,
          uid_vid = "03f0:034a",
          timeout = 5000,
          role = "client"):
     # use usbhid to grab keyboard
 
-    #if remote:
-        # generate a unique local port name
-        #if not os.path.exists('/root/dev'):
-        #    os.mkdir("/root/dev")
-        #vmodem = f"/root/dev/{os.path.basename(port)}"
-        #print(vmodem)
-        # https://unix.stackexchange.com/questions/504621/use-remote-serial-port-as-a-local-one
-        # dosen't work: serial.serialutil.SerialException: write failed: [Errno 5] Input/output error
-        #cmd = f'socat PTY,link={vmodem},rawer,wait-slave EXEC:"ssh {remote} socat - {port},nonblock,rawer"'
-        #cmd = shlex.split(cmd)
-        #socat_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # it's remote, so pretend this is a local port
-        #port = vmodem
-        # wait till it should be ready
-        #for i in range(10):
-        #    if not os.path.exists(vmodem):
-        #        print("waiting")
-        #        time.sleep(1)
-        #print("ready")
-    # open the serial port
-    ser = serial.Serial(port, baudrate=9600, timeout=0.5)
+    if "server" in role:
+        server(port=port)
+        return
 
-    # this script needs to also be on the remote side
-    # this will copy the script to the remote side
-    # set up the environment
-    # run the server bit
-    
+    # running locally.
+    # grab keyboard
+
+    if remote:
+        # https://pexpect.readthedocs.io/en/stable/api/pxssh.html
+        p = pxssh.pxssh()
+        p.login(remote, username)
+        p.sendline('source activate')
+        p.prompt()
+        print(p.before)
+        
+        p.sendline('conda activate ~/CH9328-9329-USB_HID_Code/cenv')
+        p.prompt()
+        print(p.before)
+        p.sendline('python CH9328-9329-USB_HID_Code/kvm_keys.py')
+        p.expect('starting')
     
     cmd = f"usbhid-dump -m {uid_vid} -es -t {timeout}"
     cmd = shlex.split(cmd)
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # also open ssh connection
+    cmd = f'ssh dietzn@debussy.shurelab.com "source activate && conda activate ~/CH9328-9329-USB_HID_Code/cenv && echo blah && python3 CH9328-9329-USB_HID_Code/kvm_keys.py"'
+    cmd = shlex.split(cmd)
+    ssh_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
     result = {}
     while True:
     #for i in range(50):
         row = proc.stdout.readline()
+        print(row, flush=True)
+        p.sendline(row)
         if row == b'':
             print("timeout detected")
             break
-        print(row)
-        print('row done')
-        if b'STREAM' in row:
-            print('...')
-            values = proc.stdout.readline().decode("utf-8")
-            print(values)
-            values = values.split(' ')
-            codes = []
-            for v in values[1:]:
-                code = int(v, 16)
-                codes.append(code)
-            print(codes)
-            serial_data = codes_to_hid(codes)
-            if codes == [0,0,0x45,0,0,0,0,0]:
-                print('F12 pressed... ending session.')
-                break
-            print('.')
-            ser.write(serial_data)
     print('done')
+
+    p.expect("timeout detected")
+    if remote:
+        p.logout()
+        
     # wait till timeout
     proc.communicate()
-
-    if remote:
-        # close the remote serial port
-        socat_proc.kill()
 
     time.sleep(2) # just to be sure all is cleaned up and it doesn't destablize the os
 
 def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"):
     # this runs on the machine with the usb serial port
+    # it expects the input from a remote usbhid-dump
+    # it will read usbhid-dump data and parse it
+    # and send it out the serial port
+    
     # open the serial port
     ser = serial.Serial(port, baudrate=9600, timeout=0.5)
 
-    # read usbhid-dump data and parse it
+
     
     result = {}
     print("starting", flush=True)
@@ -153,5 +147,5 @@ def codes_to_hid(codes):
 
 if __name__ == '__main__':
     import typer
-    typer.run(server)
+    typer.run(main)
 
