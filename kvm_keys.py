@@ -117,7 +117,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
 
             # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
             row = f.readline()
-            if row == '':
+            if row == '\n':
                 print("timeout detected", flush=True)
                 break
             print(row, flush=True)
