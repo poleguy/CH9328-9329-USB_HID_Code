@@ -110,6 +110,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     # read usbhid-dump data and parse it
     
     result = {}
+    print("starting")
     while True:
     #for i in range(50):
         
