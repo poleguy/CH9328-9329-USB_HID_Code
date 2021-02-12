@@ -116,12 +116,12 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     for row in fileinput.input():
         # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
         
-        if row == b'':
+        if row == '':
             print("timeout detected", flush=True)
             break
         print(row, flush=True)
         print('row done', flush=True)
-        if b'STREAM' in row:
+        if 'STREAM' in row:
             print('...', flush=True)
             values = proc.stdout.readline().decode("utf-8")
             print(values, flush=True)
