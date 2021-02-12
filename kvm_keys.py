@@ -79,7 +79,7 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
         raw_row = proc.stdout.readline()
         row = raw_row.decode('utf-8').strip('\n')
 
-        print(raw_row)
+        #print(raw_row)
         if raw_row == b'':            
             print("timeout detected with 'b'",flush=True)
             p.sendline('No more')
@@ -132,7 +132,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
                 #print('...', flush=True)
                 print('kvm_keys> ', flush=True)
                 values = f.readline()
-                print(values, flush=True)
+                #print(values, flush=True)
                 values = values.split(' ')
                 codes = []
                 for v in values[1:]:
