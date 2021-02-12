@@ -79,14 +79,15 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
         row = proc.stdout.readline().decode('utf-8').strip('\n')
         print(f'near end: {row}', flush=True)
         p.sendline(row)
-        p.expect("kvm_keys> ")
-        print(f"far end: {p.before.decode('utf-8')}")
-        if row == b'':
-            print("timeout detected")
+        if "No more interfaces to dump" in row:
+            print("timeout detected",flush=True)
             break
+        p.expect("kvm_keys> ")
+        print(f"far end: {p.before.decode('utf-8')}", flush=True)
     print('done')
 
-    p.expect("timeout detected")
+    # look for response from far side
+    #p.expect("No more interfaces to dump")
     if remote:
         p.logout()
         
@@ -108,6 +109,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     
     result = {}
     print("starting", flush=True)
+    print('Will end upon receiving "No more interfaces to dump"', flush=True)
     with fileinput.input(files=None) as f:
         while True:
         #for i in range(50):
