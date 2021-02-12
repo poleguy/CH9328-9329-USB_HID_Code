@@ -127,7 +127,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
             if 'No more' in row:
                 print("timeout detected", flush=True)
                 break
-            print(row, flush=True)
+            #print(row, flush=True)
             if 'STREAM' in row:
                 #print('...', flush=True)
                 print('kvm_keys> ', flush=True)
