@@ -110,34 +110,34 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     # read usbhid-dump data and parse it
     
     result = {}
-    print("starting")
+    print("starting", flush=True)
     while True:
     #for i in range(50):
         
         # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
         row = fileinput.input()
         if row == b'':
-            print("timeout detected")
+            print("timeout detected", flush=True)
             break
-        print(row)
-        print('row done')
+        print(row, flush=True)
+        print('row done', flush=True)
         if b'STREAM' in row:
-            print('...')
+            print('...', flush=True)
             values = proc.stdout.readline().decode("utf-8")
-            print(values)
+            print(values, flush=True)
             values = values.split(' ')
             codes = []
             for v in values[1:]:
                 code = int(v, 16)
                 codes.append(code)
-            print(codes)
+            print(codes, flush=True)
             serial_data = codes_to_hid(codes)
             if codes == [0,0,0x45,0,0,0,0,0]:
-                print('F12 pressed... ending session.')
+                print('F12 pressed... ending session.', flush=True)
                 break
-            print('.')
+            print('.', flush=True)
             ser.write(serial_data)
-    print('done')
+    print('done', flush=True)
     # wait till timeout
     proc.communicate()
 
