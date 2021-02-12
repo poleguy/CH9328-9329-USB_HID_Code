@@ -76,8 +76,10 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
     while True:
     #for i in range(50):
         row = proc.stdout.readline()
-        print(row, flush=True)
-        p.sendline(row)
+        print(f'near end: {row}', flush=True)
+        p.sendline(row.decode('utf-8'))
+        p.expect("row done")
+        print(p.before.decode('utf-8'))
         if row == b'':
             print("timeout detected")
             break
@@ -111,14 +113,15 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
 
             # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
             row = f.readline()
+            print('processing', flush=True)
             if row == '\n':
                 print("timeout detected", flush=True)
                 break
             print(row, flush=True)
-            print('row done', flush=True)
             if 'STREAM' in row:
                 print('...', flush=True)
                 values = f.readline()
+                print('processing', flush=True)
                 print(values, flush=True)
                 values = values.split(' ')
                 codes = []
