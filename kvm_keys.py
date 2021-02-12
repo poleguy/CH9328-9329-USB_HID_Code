@@ -111,11 +111,11 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     
     result = {}
     print("starting", flush=True)
-    while True:
+    #while True:
     #for i in range(50):
-        
+    for row in fileinput.input():
         # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
-        row = fileinput.input()
+        
         if row == b'':
             print("timeout detected", flush=True)
             break
