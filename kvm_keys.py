@@ -60,26 +60,27 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
         p.prompt()
         print(p.before)
         p.sendline('python CH9328-9329-USB_HID_Code/kvm_keys.py')
-        p.expect('starting')
-    
+        p.expect('kvm_keys> ')
+        
     cmd = f"usbhid-dump -m {uid_vid} -es -t {timeout}"
+    print(cmd)
     cmd = shlex.split(cmd)
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # also open ssh connection
-    cmd = f'ssh dietzn@debussy.shurelab.com "source activate && conda activate ~/CH9328-9329-USB_HID_Code/cenv && echo blah && python3 CH9328-9329-USB_HID_Code/kvm_keys.py"'
-    cmd = shlex.split(cmd)
-    ssh_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #cmd = f'ssh dietzn@debussy.shurelab.com "source activate && conda activate ~/CH9328-9329-USB_HID_Code/cenv && echo blah && python3 CH9328-9329-USB_HID_Code/kvm_keys.py"'
+    #cmd = shlex.split(cmd)
+    #ssh_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
     result = {}
     while True:
     #for i in range(50):
-        row = proc.stdout.readline()
+        row = proc.stdout.readline().decode('utf-8').strip('\n')
         print(f'near end: {row}', flush=True)
-        p.sendline(row.decode('utf-8'))
-        p.expect("processing")
-        print(p.before.decode('utf-8'))
+        p.sendline(row)
+        p.expect("kvm_keys> ")
+        print(f"far end: {p.before.decode('utf-8')}")
         if row == b'':
             print("timeout detected")
             break
@@ -114,7 +115,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
             # https://stackoverflow.com/questions/1450393/how-do-you-read-from-stdin
             print('kvm_keys> ', flush=True)
             row = f.readline()
-            if row == '\n':
+            if 'No more interfaces to dump' in row:
                 print("timeout detected", flush=True)
                 break
             print(row, flush=True)
