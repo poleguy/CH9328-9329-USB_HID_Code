@@ -105,7 +105,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     
     result = {}
     print("starting", flush=True)
-    with fileinput.input(Files="None") as f:
+    with fileinput.input(files="None") as f:
         while True:
         #for i in range(50):
 
