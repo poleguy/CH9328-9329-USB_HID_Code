@@ -34,7 +34,10 @@ import os
 import pexpect
 from pexpect import pxssh
 
+import typer
 
+
+#@plac.opt('port', "serial port", type=str)
 def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0",
          remote = None,
          username = None,
@@ -62,7 +65,7 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
         p.sendline('conda activate ~/CH9328-9329-USB_HID_Code/cenv')
         p.prompt()
         print(p.before)
-        p.sendline('python CH9328-9329-USB_HID_Code/kvm_keys.py')
+        p.sendline(f'python CH9328-9329-USB_HID_Code/kvm_keys.py --port {port}')
         p.expect('kvm_keys> ')
 
 
@@ -160,12 +163,12 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
     # open the serial port
     ser = serial.Serial(port, baudrate=9600, timeout=0.5)
 
-
+    print(port)
     
     result = {}
     print("starting", flush=True)
     print('Will end upon receiving "No more"', flush=True)
-    with fileinput.input(files=None) as f:
+    with fileinput.input(files='-') as f:
         while True:
         #for i in range(50):
 
@@ -210,6 +213,6 @@ def codes_to_hid(codes):
 
 
 if __name__ == '__main__':
-    import typer
+    #plac.call(main)
     typer.run(main)
 
