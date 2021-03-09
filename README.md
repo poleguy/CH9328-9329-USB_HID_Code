@@ -4,7 +4,7 @@ run:
 
 to set up the first time:
 
-./init.sh
+source ./init.sh
 
 to test on your own local machine:
 
