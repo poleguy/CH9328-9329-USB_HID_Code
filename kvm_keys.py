@@ -24,27 +24,35 @@
 # the server takes each message and sends it out the serial port
 
 import fileinput
-import serial
+import getpass
+import os
+import pwd
 import queue
 import time
 import subprocess
 import shlex
 import os
 # See http://pexpect.sourceforge.net/
-import pexpect
-from pexpect import pxssh
+#import pexpect
+#from pexpect import pxssh
+import paramiko
+from paramiko_expect import SSHClientInteraction
+
 
 import typer
 
 
 #@plac.opt('port', "serial port", type=str)
 def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0",
-         remote = None,
+         hostname = None,
          username = None,
          uid_vid = "03f0:034a",
          timeout = 30000, # msec
          role = "server"):
     # use usbhid to grab keyboard
+
+    PROMPT = '.*]\$\s+'
+
     print("prepraing connection...")
     
     if "server" in role:
@@ -54,105 +62,135 @@ def main(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"
     # running locally.
     # grab keyboard
 
-    if "client" in role:
-        # https://pexpect.readthedocs.io/en/stable/api/pxssh.html
-        p = pxssh.pxssh()
-        p.login(remote, username)
-        p.sendline('source activate')
-        p.prompt()
-        print(p.before)
-        
-        p.sendline('conda activate ~/CH9328-9329-USB_HID_Code/cenv')
-        p.prompt()
-        print(p.before)
-        p.sendline(f'python CH9328-9329-USB_HID_Code/kvm_keys.py --port {port}')
-        p.expect('kvm_keys> ')
-
-
-    # set up permissions (write access to usb device)
-    # https://stackoverflow.com/questions/41238273/execute-shell-command-with-pipes-in-python
-    cmd = f"lsusb"
-    print(cmd)
-    cmd = shlex.split(cmd)
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    response = proc.stdout.readlines()
-    for line in response:
-        line = line.decode('utf-8')
-        if uid_vid in line:
-            bus = line.split()[1]
-            device = line.split()[3][:-1]
-            break
-
-    cmd = f"sudo setfacl -m u:poleguy:rw /dev/bus/usb/{bus}/{device}"
-    #print(response)
-    print(cmd)
-    cmd = shlex.split(cmd)
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc.communicate()
+    # must be the client:
+    #if "client" in role:
+    # https://pexpect.readthedocs.io/en/stable/api/pxssh.html
+    #p = pxssh.pxssh()
+    #https://github.com/fgimian/paramiko-expect
+    p = paramiko.SSHClient()
     
-    cmd = f"usbhid-dump -m {uid_vid} -es -t {timeout}"
-    print(cmd)
-    cmd = shlex.split(cmd)
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Set SSH key parameters to auto accept unknown hosts
+    p.load_system_host_keys()
+    p.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # Connect to the host
+    p.connect(hostname=hostname, username=username)
+    
+    #p.force_password = True
+    #p.login(hostname, username)
 
+    # Create a client interaction class which will interact with the host
+    with SSHClientInteraction(p, timeout=10, display=True) as interact:
 
-    # also open ssh connection
-    #cmd = f'ssh dietzn@debussy.shurelab.com "source activate && conda activate ~/CH9328-9329-USB_HID_Code/cenv && echo blah && python3 CH9328-9329-USB_HID_Code/kvm_keys.py"'
-    #cmd = shlex.split(cmd)
-    #ssh_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-
-    result = {}
-    print("ready for input:")
-    while True:
-    #for i in range(50):
-        raw_row = proc.stdout.readline()
-        row = raw_row.decode('utf-8').strip('\n')
-
-        #print(raw_row)
-        if raw_row == b'':            
-            print("timeout detected with 'b'",flush=True)
-            p.sendline('No more')
-            p.prompt()
-            print(f"far end: {p.before.decode('utf-8')}", flush=True)
-            break
-
-        if b"00 00 45 00 00 00 00 00" in raw_row:
-            print("F12 pressed to exit 'b'",flush=True)
-            # eat the F12 so it doesn't get sent
-            # and fake out all buttons up to prevent stuck key
-            p.sendline('00 00 00 00 00 00 00 00')
-            p.expect("kvm_keys> ")
-            print(f"far end: {p.before.decode('utf-8')}", flush=True)
-            # then end it
-            p.sendline('No more')
-            p.prompt()
-            print(f"far end: {p.before.decode('utf-8')}", flush=True)
-            p.sendline('whoami')
-            p.prompt()
-            print(f"far end: {p.before.decode('utf-8')}", flush=True)
-            break
-
-        print(f'near end: {row}', flush=True)
-        p.sendline(row)
-        p.expect("kvm_keys> ")
-        print(f"far end: {p.before.decode('utf-8')}", flush=True)
-
-    print('shutting down...')
-
-    # look for response from far side
-    #p.expect("No more interfaces to dump")
-    if remote:
-        print("logging out")
-        p.logout()
+        interact.send('source activate')
+        interact.expect(PROMPT)
+        print(interact.current_output_clean)
         
-    # wait till timeout
-    #proc.communicate()
-    proc.terminate()
-    proc.wait()
+        interact.send('conda activate ~/CH9328-9329-USB_HID_Code/cenv')
+        interact.expect(PROMPT)
+        print(interact.current_output_clean)
+        cmd = f'python CH9328-9329-USB_HID_Code/kvm_keys.py --port {port}'
+        print(cmd)
+        interact.send(cmd)
+        interact.expect('kvm_keys> ')
 
-    time.sleep(2) # just to be sure all is cleaned up and it doesn't destablize the os
-    print('done')
+
+        # set up permissions (write access to usb device)
+        # https://stackoverflow.com/questions/41238273/execute-shell-command-with-pipes-in-python
+        cmd = f"lsusb"
+        print(cmd)
+        cmd = shlex.split(cmd)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        response = proc.stdout.readlines()
+        bus = None
+        for line in response:
+            line = line.decode('utf-8')
+            if uid_vid in line:
+                bus = line.split()[1]
+                device = line.split()[3][:-1]
+                break
+     
+        if not bus:
+            raise ValueError("no bus found. Check --uid-vid is correct with lsusb")
+     
+        # give read permissions to current user
+        user = get_username()
+        cmd = f"sudo setfacl -m u:{user}:rw /dev/bus/usb/{bus}/{device}"
+        #print(response)
+        print(cmd)
+        cmd = shlex.split(cmd)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc.communicate()
+        
+        cmd = f"usbhid-dump -m {uid_vid} -es -t {timeout}"
+        print(cmd)
+        cmd = shlex.split(cmd)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+     
+     
+        # also open ssh connection
+        #cmd = f'ssh dietzn@debussy.shurelab.com "source activate && conda activate ~/CH9328-9329-USB_HID_Code/cenv && echo blah && python3 CH9328-9329-USB_HID_Code/kvm_keys.py"'
+        #cmd = shlex.split(cmd)
+        #ssh_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+     
+     
+        result = {}
+        print("ready for input:")
+
+        while True:
+        #for i in range(50):
+            raw_row = proc.stdout.readline()
+            row = raw_row.decode('utf-8').strip('\n')
+     
+            #print(raw_row)
+            if raw_row == b'':            
+                print("timeout detected with 'b'",flush=True)
+                interact.send('No more')
+                interact.expect(PROMPT)
+                print(f"far end: {interact.current_output_clean}", flush=True)
+                break
+     
+            if b"00 00 45 00 00 00 00 00" in raw_row:
+                print("F12 pressed to exit 'b'",flush=True)
+                # eat the F12 so it doesn't get sent
+                # and fake out all buttons up to prevent stuck key
+                interact.send('00 00 00 00 00 00 00 00')
+                interact.expect("kvm_keys> ")
+                print(f"far end: {interact.current_output_clean}", flush=True)
+                # then end it
+                interact.send('No more')
+                interact.expect(PROMPT)
+                print(f"far end: {interact.current_output_clean}", flush=True)
+                interact.send('whoami')
+                interact.expect(PROMPT)
+                print(f"far end: {interact.current_output_clean}", flush=True)
+                break
+     
+            print(f'near end: {row}', flush=True)
+            interact.send(row)
+            interact.expect("kvm_keys> ")
+            print(f"far end: {interact.current_output_clean}", flush=True)
+
+        print('shutting down...')
+     
+        # look for response from far side
+        #interact.expect("No more interfaces to dump")
+        if hostname:
+            print("logging out")
+            #p.logout()
+            # Send the exit command and expect EOF (a closed session)
+            interact.send('whoami')
+            interact.expect(PROMPT)
+            interact.send('exit')
+            #interact.expect()
+            
+        # wait till timeout
+        #proc.communicate()
+        # can't terminate if it is run with sudo
+        proc.terminate()
+        proc.wait()
+     
+        time.sleep(2) # just to be sure all is cleaned up and it doesn't destablize the os
+        print('done')
 
 def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0"):
     # this runs on the machine with the usb serial port
@@ -210,7 +248,9 @@ def test_codes_to_hid():
 def codes_to_hid(codes):
     serial_data = serial.to_bytes(codes)
     return serial_data
-
+#https://stackoverflow.com/questions/842059/is-there-a-portable-way-to-get-the-current-username-in-python
+def get_username():
+    return pwd.getpwuid( os.getuid() )[ 0 ]
 
 if __name__ == '__main__':
     #plac.call(main)

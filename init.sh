@@ -9,11 +9,28 @@
 # this will create a clean ./cenv if it does not exist
 # it will run a quick update if it does, for interactive use.
 
+# https://serverfault.com/questions/146745/how-can-i-check-in-bash-if-a-shell-is-running-in-interactive-mode
+if [[ $- == *i* ]]
+then
+    echo $-
+    echo shell is interactive
+else
+    echo $-
+    echo shell is not interactive
+fi
 
 # .bashrc should be updated by running
 # conda init bash
 # conda config --set auto_activate_base false
 # conda config --set env_prompt '({name})'
+
+# to get this to run in a noninteractive script (which doesn't source /etc/profile.d/conda.sh)
+# https://stackoverflow.com/questions/52779016/conda-command-working-in-command-prompt-but-not-in-bash-script
+# https://github.com/conda/conda/issues/7980
+# https://stackoverflow.com/questions/55507519/python-activate-conda-env-through-shell-script
+eval "$(command conda 'shell.bash' 'hook' 2> /dev/null)"
+# note: jenkins sources this environment only when the agent is started!
+# restart the agent if you need to pull in fresh environment settings
 
 # using || true to avoid erroring out if environment isn't happy
 
@@ -39,4 +56,6 @@ conda activate ./cenv || true
 # conda deactivate
 # conda env remove --prefix ./env
 # conda env remove --name test-env
-echo "init.sh done"
+export root_dir=`pwd`
+export PYTHONPATH=${root_dir}:${root_dir}/
+echo "setup_python done"

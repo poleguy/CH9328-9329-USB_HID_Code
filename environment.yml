@@ -3,9 +3,10 @@ channels:
   - defaults
 dependencies:
   - python>=3.6
-  - pexpect
+#  - pexpect
   - pip
   - pip:
     - pyserial
+    - paramiko-expect
     - pynput
     - typer
