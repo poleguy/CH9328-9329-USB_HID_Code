@@ -236,7 +236,7 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
                     break
                 if codes == [0,0,0x44,0,0,0,0,0]:
                     print('F11 pressed... sending 1 byte', flush=True)
-                    serial_data =send_bytes(n)
+                    serial_data =send_bytes(1)
                 ser.write(serial_data)
     print('done', flush=True)
 
