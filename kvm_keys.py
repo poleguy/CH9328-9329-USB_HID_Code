@@ -35,6 +35,7 @@ import os
 # See http://pexpect.sourceforge.net/
 #import pexpect
 #from pexpect import pxssh
+import serial
 import paramiko
 from paramiko_expect import SSHClientInteraction
 
