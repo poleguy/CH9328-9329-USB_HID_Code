@@ -247,7 +247,7 @@ def test_codes_to_hid():
     print(a)
     
 
-def send_bytes(ser, n):
+def send_bytes(n):
     # send dummy bytes in case device gets out of sync. yikes?
     codes = [0] * n
     serial_data = codes_to_hid(codes)    
