@@ -233,7 +233,9 @@ def server(port = "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port
                 if codes == [0,0,0x45,0,0,0,0,0]:
                     print('F12 pressed... ending session.', flush=True)
                     break
-                #print('.', flush=True)
+                if codes == [0,0,0x44,0,0,0,0,0]:
+                    print('F11 pressed... sending 1 byte', flush=True)
+                    serial_data =send_bytes(n):
                 ser.write(serial_data)
     print('done', flush=True)
 
@@ -243,6 +245,12 @@ def test_codes_to_hid():
     a = codes_to_hid([4,0,0,0,0,0,0,0])
     print(a)
     
+
+def send_bytes(ser, n):
+    # send dummy bytes in case device gets out of sync. yikes?
+    codes = [0] * n
+    serial_data = codes_to_hid(codes)    
+    return serial_data
     
 
 def codes_to_hid(codes):
