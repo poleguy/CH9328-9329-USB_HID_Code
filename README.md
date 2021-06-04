@@ -1,5 +1,16 @@
 # CH9328-USB_HID_Code
 
+This code must be run on a machine with a physical keyboard connected via usb. It has not been tested on laptop keyboards and might lock up the keyboard requiriing a reboot. Plug and unplug the keyboard if it stops responding.
+
+The machine with the physical machine is called the client. It talks to a server via ssh. In this example the server is debussy.shurelab.com. The server must be preconfigured with this repo checked out in the home directary and init.sh sourced to set up the environment.
+
+The server sends serial commands to the HID device which is plugged into your target machine.
+There is also an HDMI to USB Video Capture card connected from the target machine back to debussy. This can be viewed by running:
+
+vlc 
+
+and opening the device with a name like /dev/video0
+
 run:
 
 git clone https://github.com/poleguy/CH9328-9329-USB_HID_Code.git
